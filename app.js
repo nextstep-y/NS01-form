@@ -243,7 +243,7 @@ function renderTables(m){
     const delta=before?m.finalBeforeVsDesign:m.finalAfterVsDesign;
     rows.push(["Diff. from Design (mm)",delta],["Remark*",delta,null,"remark",true]);
     const badge=(before&&!m.finalBeforeAvailable)?`<span class="dataset-badge pending">No archived Before Joint Check data</span>`:`<span class="dataset-badge">${before?"Before":"After"} Joint Check</span>`;
-    parts.push(tableSection(`STAGE 3 - FINAL ALIGNMENT ${badge}`,m,rows,{wir:wirText(state.data?.wir,"Stage 3"),unit:"m / mm"}));
+    parts.push(tableSection("STAGE 3 - FINAL ALIGNMENT",m,rows,{wir:wirText(state.data?.wir,"Stage 3"),unit:"m / mm"}));
   }else{
     const finalRows=[["Design",m.zDesign,v=>cell(v,3)]];
     if(before||both)finalRows.push(["Final Alignment - Before Joint Check",m.zFinalBefore,v=>cell(v,3)]);
