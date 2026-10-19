@@ -93,11 +93,13 @@ async function loadSpanData(span){
     ["final","Final Alignment",`select A,B,C,D,E where A='${s}'`],
     ["upon","Upon Completion of Parapet Works",`select A,B,C,D,E,F,G where F='${ds}'`],
     ["uponDesign","UPON DESIGN",`select A,B,C,D,E,F where F='${ds}'`],
-    ["chainage","Chainage-Kilometre",`select A,B,C,D where A is not null`],
     ["jointCheckArchive","Joint Check Revision Archive",`select A,B,C,D,E,F,G,H,I,J,K where C='${s}'`],
     ["wir","WIR",`select A,B,C,D,E,F,G,H,I where A='${s}'`]
   ];
   const result={};
+  const chainageResponse=await fetch("./project-chainage.json");
+  if(!chainageResponse.ok)throw new Error("Unable to load project chainage reference.");
+  result.chainage=await chainageResponse.json();
   for(const [key,sheet,query] of tasks){
     try{ result[key]=rows(await gviz(sheet,query)); }
     catch(err){ result[key]=[]; result[key+"Error"]=err.message; }
@@ -229,10 +231,10 @@ function renderTables(m){
   if(state.view==="comparison"){tables.innerHTML="";return;}
   const parts=[];
   parts.push(tableSection("STAGE 0 - AS CAST DATA (ITD Internal Data only)",m,[["Actual",m.n0]]));
-  parts.push(tableSection("STAGE 1 - After Stitching (ITD Internal Data only)",m,[["Actual",m.n1]],{wir:wirText(state.data?.wir,"Stage 1")}));
-  parts.push(tableSection("Comparison (Stage 0 - Stage 1, ITD Internal Data only)",m,[["Stage 0 - As Cast",m.n0],["Stage 1 - After Stitching",m.n1],["Diff.",m.d01]]));
-  parts.push(tableSection("STAGE 2 - After Stressing (ITD Internal Data only)",m,[["Actual",m.n2]],{wir:wirText(state.data?.wir,"Stage 2")}));
-  parts.push(tableSection("Deflection due to stressing (Stage 2 - Stage 1, ITD Internal Data only)",m,[["Stage 1 - After Stitching",m.n1],["Stage 2 - After Stressing",m.n2],["Diff. (mm)",m.d12],["Remark*",m.d12,null,"remark",true]]));
+  parts.push(tableSection("STAGE 1 - After Stitching",m,[["Actual",m.n1]],{wir:wirText(state.data?.wir,"Stage 1")}));
+  parts.push(tableSection("Comparison (Stage 0 - Stage 1)",m,[["Stage 0 - As Cast",m.n0],["Stage 1 - After Stitching",m.n1],["Diff.",m.d01]]));
+  parts.push(tableSection("STAGE 2 - After Stressing",m,[["Actual",m.n2]],{wir:wirText(state.data?.wir,"Stage 2")}));
+  parts.push(tableSection("Deflection due to stressing (Stage 2 - Stage 1)",m,[["Stage 1 - After Stitching",m.n1],["Stage 2 - After Stressing",m.n2],["Diff. (mm)",m.d12],["Remark*",m.d12,null,"remark",true]]));
   if(state.view==="final"){
     const rows=[["Design",m.zDesign,v=>cell(v,3)]];
     if(before||both)rows.push(["Final Alignment - Before Joint Check",m.zFinalBefore,v=>cell(v,3)]);
@@ -252,12 +254,12 @@ function renderTables(m){
     parts.push(tableSection("STAGE 3 - FINAL ALIGNMENT",m,finalRows,{wir:wirText(state.data?.wir,"Stage 3"),unit:"m / mm"}));
     const rows=[["Design",m.stage4Design,v=>cell(v,3)]];
     if(before||both)rows.push(["Upon Completion - Before Joint Check",m.zUponBefore,v=>cell(v,3)]);
-    if(!before||both)rows.push(["Upon Completion - After Joint Check",m.zUponAfter,v=>cell(v,3)]);
+    if(!before||both)rows.push([both?"Upon Completion - After Joint Check":"Upon Completion of Parapet Works",m.zUponAfter,v=>cell(v,3)]);
     if(both)rows.push(["Joint Check Correction (mm)",m.uponCorrection]);
     const delta=before?m.uponBeforeVsDesign:m.uponAfterVsDesign;
     rows.push(["Diff. from Design (mm)",delta],["Remark*",delta,null,"remark",true]);
     const badge=(before&&!m.uponBeforeAvailable)?`<span class="dataset-badge pending">No archived Before Joint Check data</span>`:`<span class="dataset-badge">${before?"Before":"After"} Joint Check</span>`;
-    parts.push(tableSection(`STAGE 4 - UPON COMPLETION OF PARAPET WORKS ${badge}`,m,rows,{wir:wirText(state.data?.wir,"Stage 4"),unit:"m / mm"}));
+    parts.push(tableSection("STAGE 4 - UPON COMPLETION OF PARAPET WORKS",m,rows,{wir:wirText(state.data?.wir,"Stage 4"),unit:"m / mm"}));
   }
   tables.innerHTML=parts.join("");
 }
@@ -330,7 +332,8 @@ async function refresh(){
   catch(err){statusBox.className="status warning";statusBox.textContent="Data could not be refreshed.";errorPanel.textContent=err.message;errorPanel.classList.remove("hidden");}
 }
 async function init(){
-  $("#dateField").textContent=new Date().toLocaleDateString("en-GB");
+  const reportDate=new Date();
+  $("#dateField").textContent=`${reportDate.toLocaleDateString("en-US",{month:"long"})} ${reportDate.getDate()} ${reportDate.getFullYear()}`;
   $("#printBtn").addEventListener("click",printReport);$("#refreshBtn").addEventListener("click",refresh);
   $("#spanSelect").addEventListener("change",e=>{state.span=e.target.value;refresh();});
   document.querySelectorAll("[data-point]").forEach(btn=>btn.addEventListener("click",()=>{
@@ -341,3 +344,4 @@ async function init(){
   try{await loadSpans();await refresh();}catch(err){statusBox.className="status warning";statusBox.textContent="Unable to load the span list.";errorPanel.textContent=err.message;errorPanel.classList.remove("hidden");}
 }
 init();
+
