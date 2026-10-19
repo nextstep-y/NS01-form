@@ -86,6 +86,7 @@ async function loadSpanData(span){
     ["final","Final Alignment",`select A,B,C,D,E where A='${s}'`],
     ["upon","Upon Completion of Parapet Works",`select A,B,C,D,E,F,G where F='${ds}'`],
     ["uponDesign","UPON DESIGN",`select A,B,C,D,E,F where F='${ds}'`],
+    ["chainage","Chainage-Kilometre",`select A,B,C,D where A is not null`],
     ["jointCheckArchive","Joint Check Revision Archive",`select A,B,C,D,E,F,G,H,I,J,K where C='${s}'`],
     ["wir","WIR",`select A,B,C,D,E,F,G,H,I where A='${s}'`]
   ];
@@ -125,13 +126,27 @@ function mergedMap(base,override){const m=new Map(base);override.forEach((v,k)=>
 function arrayFor(map,joints,point,field=null){
   return joints.map(j=>{const v=map.get(`${point}${j}`);return field ? v?.[field]??null : v??null;});
 }
-function chainage(design,joints,point){
-  const coords=arrayFor(design,joints,point,null);
-  let total=0, last=null;
-  return coords.map((r,i)=>{
-    if(!r || r.n==null || r.e==null || (r.n===0&&r.e===0)) return i===0 ? 0 : null;
-    if(last) total+=Math.hypot(r.n-last.n,r.e-last.e);
-    last=r; return total;
+function pierChainageMap(list){
+  const m=new Map();
+  list.forEach(r=>{
+    const id=String(r[0]||"").trim().toUpperCase().match(/^P-?(\d+[A-Z]?)$/)?.[1];
+    const km=num(r[1]), e=num(r[2]), n=num(r[3]);
+    if(id&&km!=null&&e!=null&&n!=null)m.set(id,{km,e,n});
+  });
+  return m;
+}
+function chainage(design,uponDesign,joints,point,span,pierRows){
+  const [startId,endId]=String(span||"").replace(/^P/i,"").split("-");
+  const piers=pierChainageMap(pierRows), start=piers.get(startId), end=piers.get(endId);
+  const dx=end?.e-start?.e, dy=end?.n-start?.n, length=Math.hypot(dx,dy);
+  if(!start||!end||!Number.isFinite(length)||length===0) return joints.map(()=>null);
+  return joints.map(j=>{
+    const key=`${point}${j}`, primary=design.get(key), fallback=uponDesign.get(key);
+    const n=primary?.n??fallback?.n, e=primary?.e??fallback?.e;
+    if(n==null||e==null)return null;
+    // Excel projects the joint's offset from the start pier onto the
+    // start-to-end pier direction, then adds the start pier's kilometre.
+    return start.km+((e-start.e)*dx+(n-start.n)*dy)/length;
   });
 }
 function normalized(values,xs,invert=false){
@@ -158,7 +173,7 @@ function buildModel(data){
   [...stitching.keys(),...stressing.keys()].forEach(k=>all.push({joint:+k.match(/\d+/)[0]}));
   const designMax=Math.max(0,...[...design.values()].map(x=>x.joint||0));
   const max=designMax || Math.max(0,...all.map(x=>x.joint||0)), joints=Array.from({length:max},(_,i)=>i+1);
-  const xs=chainage(design,joints,state.point);
+  const xs=chainage(design,uponDesign,joints,state.point,state.span,data.chainage||[]);
   const zDesign=arrayFor(design,joints,state.point,"z");
   const zAs=arrayFor(ascast,joints,state.point,"z"), zStitching=arrayFor(stitching,joints,state.point), zStressing=arrayFor(stressing,joints,state.point);
   const zFinalBefore=arrayFor(finalBefore,joints,state.point,"z"), zFinalAfter=arrayFor(finalAfter,joints,state.point,"z");
