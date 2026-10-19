@@ -48,6 +48,13 @@ function pointParts(v){
   const m=String(v||"").toUpperCase().match(/(\d+)\s*(BW|BC|BE)P?-?(\d+)/);
   return m ? {joint:+m[1],point:m[2],pier:+m[3]} : null;
 }
+// Same as the Excel number format  0\+000.000  ->  70560.175 shows as 70+560.175
+function chainageText(v){
+  if(v==null || !Number.isFinite(Number(v))) return "–";
+  const n=Number(v), [i,f]=Math.abs(n).toFixed(3).split(".");
+  const tail=i.slice(-3).padStart(3,"0"), head=i.length>3 ? i.slice(0,-3) : "0";
+  return `${n<0?"-":""}${head}+${tail}.${f}`;
+}
 function cell(v,d=3){ return v==null || !Number.isFinite(Number(v)) ? "–" : Number(v).toFixed(d); }
 function mm(v){ return v==null || !Number.isFinite(Number(v)) ? "–" : Number(v).toFixed(1); }
 function valClass(v){
@@ -136,7 +143,10 @@ function pierChainageMap(list){
   return m;
 }
 function chainage(design,uponDesign,joints,point,span,pierRows){
-  const [startId,endId]=String(span||"").replace(/^P/i,"").split("-");
+  const [startId,spanEndId]=String(span||"").replace(/^P/i,"").split("-");
+  // Excel: J6 = "P-" & (start pier number + 1). The reference direction always runs
+  // from the start pier to the NEXT pier, even for spans such as P891-893.
+  const endId=/^\d+$/.test(startId||"") ? String(Number(startId)+1) : spanEndId;
   const piers=pierChainageMap(pierRows), start=piers.get(startId), end=piers.get(endId);
   const dx=end?.e-start?.e, dy=end?.n-start?.n, length=Math.hypot(dx,dy);
   if(!start||!end||!Number.isFinite(length)||length===0) return joints.map(()=>null);
@@ -201,7 +211,7 @@ function rowHtml(label,values,formatter=mm,kind="data",remarks=false){
 }
 function tableSection(title,model,rowsDef,{wir="",unit="mm"}={}){
   const h=rowHtml("Joint No.",model.joints,v=>String(v),"meta");
-  const ch=rowHtml("Chainage (m)",model.xs,v=>v==null?"–":Number(v).toFixed(3),"meta");
+  const ch=rowHtml("Chainage (m)",model.xs,chainageText,"meta");
   return `<section class="stage"><div class="stage-title"><span>${title}</span>${wir?`<span class="wir"><b>WIR No.</b>${wir}</span>`:""}<span class="unit">unit : ${unit}</span></div><div class="grid-wrap"><table class="data-grid"><tbody>${h}${ch}${rowsDef.map(r=>rowHtml(r[0],r[1],r[2]||mm,r[3]||"data",r[4]||false)).join("")}</tbody></table></div></section>`;
 }
 function wirText(rows,stage){
