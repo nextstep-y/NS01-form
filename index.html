@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Camber and Deflection Monitoring Report">
+  <title>Camber and Deflection Monitoring Report</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="toolbar no-print">
+    <div class="toolbar__brand">
+      <span class="brand-mark">CD</span>
+      <div><strong>Camber &amp; Deflection</strong><small>Monitoring Report</small></div>
+    </div>
+    <div class="controls">
+      <label>Span No.
+        <select id="spanSelect" aria-label="Span number"></select>
+      </label>
+      <fieldset class="point-toggle" aria-label="Survey line">
+        <legend>Point</legend>
+        <button type="button" data-point="BW">BW</button>
+        <button type="button" data-point="BC" class="active">BC</button>
+        <button type="button" data-point="BE">BE</button>
+      </fieldset>
+      <button id="refreshBtn" class="button secondary" type="button">Refresh data</button>
+      <button id="printBtn" class="button primary" type="button">Print A4</button>
+    </div>
+  </div>
+
+  <main id="report" class="report" aria-live="polite">
+    <section class="report-head">
+      <div class="project-lines">
+        <div><b>Project :</b><span>THE MALOLOS CLARK RAILWAY PROJECT (MCRP) PACKAGE CP N-03</span></div>
+        <div><b>Client :</b><span>Department of Transportation (DOTr)</span></div>
+        <div><b>Engineer :</b><span>GCR Consortium</span></div>
+        <div><b>Contractor :</b><span>ITALIAN-THAI DEVELOPMENT PUBLIC COMPANY LIMITED</span></div>
+      </div>
+      <div class="report-date"><b>DATE:</b><span id="dateField"></span></div>
+    </section>
+
+    <section class="title-band">
+      <strong>Camber and Deflection Monitoring Report</strong>
+      <div class="span-title">( <span id="pierFrom">P-</span> <em>to</em> <span id="pierTo">P-</span> )</div>
+    </section>
+
+    <nav class="report-tabs no-print" aria-label="Report page">
+      <button type="button" class="active" data-view="final">Final Alignment</button>
+      <button type="button" data-view="upon">Upon Completion of Parapet Works</button>
+      <button type="button" data-view="comparison">Comparison &amp; Graph</button>
+    </nav>
+
+    <section class="revision-bar no-print" aria-label="Joint check revision">
+      <b>Joint Check Data:</b>
+      <button type="button" data-revision="before">Before Joint Check</button>
+      <button type="button" class="active" data-revision="after">After Joint Check</button>
+      <button type="button" data-revision="both">Show Both</button>
+      <span id="revisionNote">After Joint Check is the primary verified dataset.</span>
+    </section>
+
+    <div id="status" class="status loading">Loading live data from Google Sheet...</div>
+    <div id="tables"></div>
+
+    <section id="chartSection" class="chart-section hidden">
+      <div class="chart-heading">
+        <div><strong>Stage Comparison</strong><small>Normalized to the chord line of each dataset · unit: mm</small></div>
+        <div id="legend" class="legend"></div>
+      </div>
+      <svg id="chart" viewBox="0 0 1000 330" role="img" aria-label="Final Alignment and Upon Completion joint check comparison"></svg>
+    </section>
+
+    <section class="signatures">
+      <div class="signature-box">
+        <div class="signature-head"><b>Main Contractor CPN-03 (ITD)</b><b>GCR</b></div>
+        <div class="signature-roles"><b>Survey Engineer</b><b>Technical Manager</b><b>Representative</b></div>
+        <div class="signature-cells">
+          <div><span class="sign-space"></span><strong>WEERAYUT POONCHAROEN</strong><small>SURVEY HEAD ENGINEER</small></div>
+          <div><span class="sign-space"></span><strong>KHOMSAN POOLUGSANA</strong><small>TECHNICAL MANAGER</small></div>
+          <div><span class="sign-space"></span><strong>&nbsp;</strong><small>GCR ENGINEER</small></div>
+        </div>
+      </div>
+      <div class="key-plan">
+        <div class="mini-bridge" id="miniBridge" aria-label="Span joint schematic"></div>
+        <div class="key-plan__caption">40m Span : KEY PLAN</div>
+      </div>
+    </section>
+
+    <section class="notes">
+      <p>Stage 1: Segment stitching is completed using temporary PT-bar, and the segments are still suspended by LG. The elevations are presented as normalized values.</p>
+      <p>Stage 2: Permanent stressing is completed, and the segments are supported on temporary bearings. The elevations are presented as normalized values.</p>
+      <p>Stage 3: Erected span is supported on permanent bearings and UGP is already cast. The actual elevations are presented.</p>
+      <p>Stage 4: Elevations recorded upon completion of parapet works. Available survey points are presented. Missing points remain blank and graph lines are not interpolated across them.</p>
+      <p><b>* Acceptance Criteria for Stage 3 and Stage 4: -10 mm to +38 mm</b></p>
+      <p>** Instrument used is recorded in the survey report attached to the WIR.</p>
+    </section>
+
+  </main>
+
+  <div id="errorPanel" class="error-panel hidden no-print"></div>
+  <script src="./app.js"></script>
+</body>
+</html>
