@@ -1,5 +1,5 @@
 :root{
-  --navy:#31577f;--navy-2:#426c98;--blue:#adc7e3;--pale:#e8f0f8;
+  --navy:#5a7999;--navy-2:#6889ad;--blue:#bdd2e9;--pale:#e8f0f8;
   --ink:#122033;--line:#101820;--paper:#fff;--muted:#617083;
   --warn:#c94b31;--ok:#2f7654;--bg:#edf1f6;
 }
@@ -31,8 +31,8 @@ select{min-width:165px;padding:0 28px 0 10px}.button{padding:0 15px;font-weight:
 @media print{
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
   html,body{background:white}.no-print,.status{display:none!important}.report{width:100%;margin:0;padding:0;box-shadow:none;font-size:7pt}.report-head{margin-bottom:2px}.project-lines{gap:0}.project-lines>div{grid-template-columns:28mm 1fr}.title-band{padding:2px;font-size:7.6pt}.stage{margin-top:2px;break-inside:avoid}.stage-title{min-height:13px;padding:1px 4px;font-size:6.7pt}.grid-wrap{overflow:visible}.data-grid{min-width:0;font-size:5.5pt}.data-grid th,.data-grid td{height:9px;padding:0 1px;line-height:1.05}.data-grid th:first-child,.data-grid td:first-child{width:33mm;padding-left:2px}.chart-section{margin-top:3mm;padding:2mm}.chart-heading{font-size:6pt}.legend span{font-size:5pt}.signatures{flex-direction:row!important;align-items:flex-end!important;margin:5px 0 3px;gap:3mm}.signature-box{flex:0 0 160mm!important;width:160mm}.signature-head b,.signature-roles b{padding:1px}.signature-cells>div{height:15mm;padding:0 2mm 1mm}.sign-space{margin-bottom:1px}.signature-cells strong{font-size:5.4pt}.signature-cells small{font-size:4.8pt;margin-top:1px}.key-plan,.mini-bridge{min-width:0}.mini-bridge svg{max-height:23mm}.key-plan__caption{font-size:5.5pt;margin-top:.5mm}.notes{font-size:5.1pt;line-height:1.18}.notes p{margin:.5px}
-  .title-band,.stage-title,.signature-head{background:#31577f!important;color:#fff!important}
-  .data-grid tr.meta th,.data-grid tr.meta td,.data-grid tr.remark td,.signature-roles b{background:#adc7e3!important;color:#0e253e!important}
+  .title-band,.stage-title,.signature-head{background:#5a7999!important;color:#fff!important}
+  .data-grid tr.meta th,.data-grid tr.meta td,.data-grid tr.remark td,.signature-roles b{background:#bdd2e9!important;color:#0e253e!important}
   .data-grid td.bad{background:#ffe2dc!important;color:#9b2412!important}
   .data-grid td.over{background:#fff0cf!important;color:#8a5000!important}
 }
