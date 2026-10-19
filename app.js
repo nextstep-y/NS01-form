@@ -56,7 +56,7 @@ function chainageText(v){
   return `${n<0?"-":""}${head}+${tail}.${f}`;
 }
 function cell(v,d=3){ return v==null || !Number.isFinite(Number(v)) ? "–" : Number(v).toFixed(d); }
-function mm(v){ return v==null || !Number.isFinite(Number(v)) ? "–" : Number(v).toFixed(1); }
+function mm(v){ return v==null || !Number.isFinite(Number(v)) ? "–" : Number(v).toFixed(3); }
 function valClass(v){
   if(v==null || !Number.isFinite(Number(v))) return "missing";
   if(v > 38) return "over";
@@ -286,7 +286,7 @@ function renderChart(m){
   let min=Math.min(-10,...vals),max=Math.max(38,...vals); const pad=Math.max(8,(max-min)*.12);min=Math.floor((min-pad)/10)*10;max=Math.ceil((max+pad)/10)*10;
   const x=i=>p.l+(W-p.l-p.r)*(m.joints.length<=1?0:i/(m.joints.length-1)), y=v=>p.t+(H-p.t-p.b)*(max-v)/(max-min);
   let html="";
-  const ticks=6;for(let i=0;i<=ticks;i++){const v=min+(max-min)*i/ticks,yy=y(v);html+=`<line class="gridline" x1="${p.l}" y1="${yy}" x2="${W-p.r}" y2="${yy}"/><text class="axis-text" x="${p.l-8}" y="${yy+4}" text-anchor="end">${v.toFixed(0)}</text>`;}
+  const ticks=6;for(let i=0;i<=ticks;i++){const v=min+(max-min)*i/ticks,yy=y(v);html+=`<line class="gridline" x1="${p.l}" y1="${yy}" x2="${W-p.r}" y2="${yy}"/><text class="axis-text" x="${p.l-8}" y="${yy+4}" text-anchor="end">${v.toFixed(3)}</text>`;}
   html+=`<line class="axis" x1="${p.l}" y1="${p.t}" x2="${p.l}" y2="${H-p.b}"/><line class="axis" x1="${p.l}" y1="${H-p.b}" x2="${W-p.r}" y2="${H-p.b}"/>`;
   m.joints.forEach((j,i)=>html+=`<text class="axis-text" x="${x(i)}" y="${H-p.b+20}" text-anchor="middle">${j}</text>`);
   html+=`<text class="axis-text" x="${W/2}" y="${H-5}" text-anchor="middle">Joint No.</text><text class="axis-text" transform="translate(14 ${H/2}) rotate(-90)" text-anchor="middle">Normalized value (mm)</text>`;
