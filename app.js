@@ -85,14 +85,17 @@ async function loadSpans(){
 }
 async function loadSpanData(span){
   const display = `SPAN ${span}`, s = q(span), ds = q(display);
+  const [start,end]=span.replace(/^P/i,"").split("-");
+  const labels=[`P${start}-${end}`,`P-${start}-${end}`,`P${start}-P${end}`,`P-${start}-P-${end}`];
+  const spanFilter=["SPAN ","SPAN LAYOUT "].flatMap(prefix=>labels.map(label=>`F='${q(prefix+label)}'`)).join(" or ");
   const tasks = [
-    ["design","Span Layout Design",`select A,B,C,D,E,F where F='${ds}'`],
-    ["ascast","As-Cast",`select A,B,C,D,E,F where F='${ds}'`],
+    ["design","Span Layout Design",`select A,B,C,D,E,F where ${spanFilter}`],
+    ["ascast","As-Cast",`select A,B,C,D,E,F where ${spanFilter}`],
     ["before","Before Stressing",`select A,B,C,D,E where A='${s}'`],
     ["after","After Stressing",`select A,B,C,D,E where A='${s}'`],
     ["final","Final Alignment",`select A,B,C,D,E where A='${s}'`],
-    ["upon","Upon Completion of Parapet Works",`select A,B,C,D,E,F,G where F='${ds}'`],
-    ["uponDesign","UPON DESIGN",`select A,B,C,D,E,F where F='${ds}'`],
+    ["upon","Upon Completion of Parapet Works",`select A,B,C,D,E,F,G where ${spanFilter}`],
+    ["uponDesign","UPON DESIGN",`select A,B,C,D,E,F where ${spanFilter}`],
     ["jointCheckArchive","Joint Check Revision Archive",`select A,B,C,D,E,F,G,H,I,J,K where C='${s}'`],
     ["wir","WIR",`select A,B,C,D,E,F,G,H,I where A='${s}'`]
   ];
