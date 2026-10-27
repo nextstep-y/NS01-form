@@ -35,7 +35,7 @@ function gviz(sheet, query){
 }
 function rows(table){ return (table?.rows || []).map(r=>(r.c||[]).map(c=>c ? (c.v ?? null) : null)); }
 function normalizeSpan(v){
-  const m = String(v||"").toUpperCase().match(/P-?(\d+[A-Z]?)\D+P?-?(\d+[A-Z]?)/);
+  const m = String(v||"").toUpperCase().match(/P-?(\d+[A-Z]*)\s*-\s*P?-?(\d+[A-Z]*)/);
   return m ? `P${m[1]}-${m[2]}` : "";
 }
 function q(v){ return String(v).replace(/'/g,"\\'"); }
@@ -141,7 +141,7 @@ function arrayFor(map,joints,point,field=null){
 function pierChainageMap(list){
   const m=new Map();
   list.forEach(r=>{
-    const id=String(r[0]||"").trim().toUpperCase().match(/^P-?(\d+[A-Z]?)$/)?.[1];
+    const id=String(r[0]||"").trim().toUpperCase().match(/^P-?(\d+[A-Z]*)$/)?.[1];
     const km=num(r[1]), e=num(r[2]), n=num(r[3]);
     if(id&&km!=null&&e!=null&&n!=null)m.set(id,{km,e,n});
   });
