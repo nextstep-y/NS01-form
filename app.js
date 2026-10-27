@@ -149,10 +149,10 @@ function pierChainageMap(list){
 }
 function chainage(design,uponDesign,joints,point,span,pierRows){
   const [startId,spanEndId]=String(span||"").replace(/^P/i,"").split("-");
-  // Excel: J6 = "P-" & (start pier number + 1). The reference direction always runs
-  // from the start pier to the NEXT pier, even for spans such as P891-893.
+  // Preserve the next-pier reference where present. A skipped pier (P892)
+  // has no reference coordinate; use the actual span end (P893) in that case.
   const endId=/^\d+$/.test(startId||"") ? String(Number(startId)+1) : spanEndId;
-  const piers=pierChainageMap(pierRows), start=piers.get(startId), end=piers.get(endId);
+  const piers=pierChainageMap(pierRows), start=piers.get(startId), end=piers.get(endId)??piers.get(spanEndId);
   const dx=end?.e-start?.e, dy=end?.n-start?.n, length=Math.hypot(dx,dy);
   if(!start||!end||!Number.isFinite(length)||length===0) return joints.map(()=>null);
   return joints.map(j=>{
