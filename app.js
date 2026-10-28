@@ -346,5 +346,5 @@ async function init(){
   document.querySelectorAll("[data-revision]").forEach(btn=>btn.addEventListener("click",()=>{state.revision=btn.dataset.revision;render();}));
   try{await loadSpans();await refresh();}catch(err){statusBox.className="status warning";statusBox.textContent="Unable to load the span list.";errorPanel.textContent=err.message;errorPanel.classList.remove("hidden");}
 }
-init();
+if(!document.body.hasAttribute('data-monitor'))init();
 
