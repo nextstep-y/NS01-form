@@ -20,4 +20,8 @@ if(!compiled.source.startsWith('Upon')||compiled.matched!==1||compiled.cp!==null
 payload.archive=[['Upon Completion of Parapet Works','Before Joint Check','P1-2','2BCP-1',2,1,101]];
 if(compileMonitor(payload).find(r=>r.line==='BC').matched!==1)throw Error('Before excluded');
 console.log('PASS: limits, chords, datum cancellation, aliases, source fallback, missing data, before exclusion');
+const duplicateRows=[[1,'1BCP-1',10,20,100,'SPAN P1-2'],[1,'1BCP-1',0,0,100,'SPAN P1-2'],[1,'2BCP-1',11,21,100,'SPAN P1-2'],[1,'2BCP-1',11,null,100,'SPAN P1-2']];
+const g=grouped(duplicateRows,5,coordPoint).get('P1-2');if(g.get('BC1').n!==10||g.get('BC1').e!==20||g.get('BC2').e!==21||g.conflicts.size)throw Error('Complete coordinates must survive incomplete duplicates');
+const conflict=grouped([...duplicateRows,[1,'1BCP-1',10,22,100,'SPAN P1-2']],5,coordPoint).get('P1-2');if(!conflict.conflicts.has('BC1'))throw Error('Conflicting coordinates must be flagged');
+console.log('PASS: incomplete duplicates merged; conflicting duplicates flagged');
 `,context);
