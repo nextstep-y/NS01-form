@@ -39,6 +39,14 @@ function normalizeSpan(v){
   return m ? `P${m[1]}-${m[2]}` : "";
 }
 function q(v){ return String(v).replace(/'/g,"\\'"); }
+function wirSpanKey(value,bridgeLine=""){
+  const span=normalizeSpan(value), m=span.match(/^P(\d+)(NB|SB)?-(\d+)(NB|SB)?$/);
+  if(!m || (m[2]&&m[4]&&m[2]!==m[4]))return "";
+  const suffix=m[2]||m[4]||"", explicit=String(bridgeLine||"").trim().toUpperCase();
+  if(explicit&&!['ML','NB','SB'].includes(explicit))return "";
+  if(suffix&&explicit&&suffix!==explicit)return "";
+  return `P${m[1]}-${m[3]}|${suffix||explicit||'ML'}`;
+}
 function num(v){
   if(v === null || v === undefined || String(v).trim() === "") return null;
   const n=Number(v); return Number.isFinite(n) ? n : null;
@@ -97,7 +105,7 @@ async function loadSpanData(span){
     ["upon","Upon Completion of Parapet Works",`select A,B,C,D,E,F,G where ${spanFilter}`],
     ["uponDesign","UPON DESIGN",`select A,B,C,D,E,F where ${spanFilter}`],
     ["jointCheckArchive","Joint Check Revision Archive",`select A,B,C,D,E,F,G,H,I,J,K where C='${s}'`],
-    ["wir","WIR",`select A,B,C,D,E,F,G,H,I where A='${s}'`]
+    ["wir","WIR",`select A,B,C,D,E,F,G,H,I where A is not null`]
   ];
   const result={};
   const chainageResponse=await fetch("./project-chainage.json");
@@ -107,6 +115,7 @@ async function loadSpanData(span){
     try{ result[key]=rows(await gviz(sheet,query)); }
     catch(err){ result[key]=[]; result[key+"Error"]=err.message; }
   }
+  result.wir=(result.wir||[]).filter(r=>wirSpanKey(r[0],r[2])===wirSpanKey(span));
   return result;
 }
 function elevationMap(list){
