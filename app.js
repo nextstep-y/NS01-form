@@ -40,12 +40,15 @@ function normalizeSpan(v){
 }
 function q(v){ return String(v).replace(/'/g,"\\'"); }
 function wirSpanKey(value,bridgeLine=""){
-  const span=normalizeSpan(value), m=span.match(/^P(\d+)(NB|SB)?-(\d+)(NB|SB)?$/);
-  if(!m || (m[2]&&m[4]&&m[2]!==m[4]))return "";
-  const suffix=m[2]||m[4]||"", explicit=String(bridgeLine||"").trim().toUpperCase();
+  const span=normalizeSpan(String(value||'').replace(/[–—]/g,'-').replace(/\s+/g,''));
+  const m=span.match(/^P(\d+[A-Z]*)-(\d+[A-Z]*)$/);
+  if(!m)return "";
+  const left=m[1].match(/(NB|SB)$/)?.[1]||'',right=m[2].match(/(NB|SB)$/)?.[1]||'';
+  if(left&&right&&left!==right)return "";
+  const suffix=left||right, explicit=String(bridgeLine||"").trim().toUpperCase();
   if(explicit&&!['ML','NB','SB'].includes(explicit))return "";
   if(suffix&&explicit&&suffix!==explicit)return "";
-  return `P${m[1]}-${m[3]}|${suffix||explicit||'ML'}`;
+  return `P${m[1].replace(/NB$|SB$/,'')}-${m[2].replace(/NB$|SB$/,'')}|${suffix||explicit||'ML'}`;
 }
 function num(v){
   if(v === null || v === undefined || String(v).trim() === "") return null;
