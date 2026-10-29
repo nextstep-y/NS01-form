@@ -177,7 +177,7 @@ function chainage(design,uponDesign,joints,point,span,pierRows){
   // Preserve the next-pier reference where present. A skipped pier (P892)
   // has no reference coordinate; use the actual span end (P893) in that case.
   const endId=/^\d+$/.test(startId||"") ? String(Number(startId)+1) : spanEndId;
-  const piers=pierChainageMap(pierRows), start=piers.get(startId), end=piers.get(endId)??piers.get(spanEndId);
+  const piers=pierChainageMap(pierRows), start=pierReference(piers,startId), end=pierReference(piers,endId)??pierReference(piers,spanEndId);
   const dx=end?.e-start?.e, dy=end?.n-start?.n, length=Math.hypot(dx,dy);
   if(!start||!end||!Number.isFinite(length)||length===0) return joints.map(()=>null);
   return joints.map(j=>{
@@ -188,6 +188,14 @@ function chainage(design,uponDesign,joints,point,span,pierRows){
     // start-to-end pier direction, then adds the start pier's kilometre.
     return start.km+((e-start.e)*dx+(n-start.n)*dy)/length;
   });
+}
+function pierReference(piers,id){
+  if(piers.has(id))return piers.get(id);
+  const l=piers.get(`${id}L`),r=piers.get(`${id}R`);
+  // Paired supports at one station define a transverse pier section.
+  // Its midpoint supplies the missing centreline reference, not a new survey point.
+  if(l&&r&&Math.abs(l.km-r.km)<0.000001)return {km:l.km,n:(l.n+r.n)/2,e:(l.e+r.e)/2};
+  return undefined;
 }
 function normalized(values,xs,invert=false){
   const out=Array(values.length).fill(null);
@@ -213,8 +221,9 @@ function normalizationDistances(design,uponDesign,joints,point,xs){
 }
 function diff(a,b){ return a.map((v,i)=>v==null||b[i]==null?null:v-b[i]); }
 function buildModel(data){
+  const isCis=normalizeSpan(state.span)==='P1120-1121';
   const design=elevationMap(data.design), ascast=elevationMap(data.ascast), uponDesign=elevationMap(data.uponDesign);
-  const stitching=readingMap(data.before), stressing=readingMap(data.after);
+  const stitching=readingMap(isCis?[]:data.before), stressing=readingMap(isCis?[]:data.after);
   const finalCurrent=alignmentMap(data.final), uponCurrent=elevationMap(data.upon);
   const finalBefore=archiveMap(data.jointCheckArchive,"Final Alignment","Before Joint Check");
   const finalAfter=mergedMap(finalCurrent,archiveMap(data.jointCheckArchive,"Final Alignment","After Joint Check"));
@@ -230,11 +239,14 @@ function buildModel(data){
   const zAs=arrayFor(ascast,joints,state.point,"z"), zStitching=arrayFor(stitching,joints,state.point), zStressing=arrayFor(stressing,joints,state.point);
   const zFinalBefore=arrayFor(finalBefore,joints,state.point,"z"), zFinalAfter=arrayFor(finalAfter,joints,state.point,"z");
   const special=data.uponDesign.length>0, stage4Design=arrayFor(special?uponDesign:design,joints,state.point,"z");
+  const uponXs=special?chainage(uponDesign,new Map(),joints,state.point,state.span,data.chainage||[]):xs;
+  const uponRelativeXs=special?normalizationDistances(uponDesign,new Map(),joints,state.point,uponXs):relativeXs;
+  const uponJointCount=special?Math.max(0,...[...uponDesign.values()].map(p=>p.joint||0)):joints.length;
   const zUponBefore=arrayFor(uponBefore,joints,state.point,"z"), zUponAfter=arrayFor(uponAfter,joints,state.point,"z");
   const n0=normalized(zAs,relativeXs), n1=normalized(zStitching,relativeXs,true), n2=normalized(zStressing,relativeXs,true);
   const nDesign=normalized(zDesign,relativeXs), nFinalBefore=normalized(zFinalBefore,relativeXs), nFinalAfter=normalized(zFinalAfter,relativeXs);
-  const nUponBefore=normalized(zUponBefore,relativeXs), nUponAfter=normalized(zUponAfter,relativeXs);
-  return {joints,xs,zDesign,zAs,zStitching,zStressing,stage4Design,zFinalBefore,zFinalAfter,zUponBefore,zUponAfter,
+  const nUponBefore=normalized(zUponBefore,uponRelativeXs), nUponAfter=normalized(zUponAfter,uponRelativeXs);
+  return {isCis,joints,xs,uponXs,uponJointCount,zDesign,zAs,zStitching,zStressing,stage4Design,zFinalBefore,zFinalAfter,zUponBefore,zUponAfter,
     n0,n1,n2,nDesign,nFinalBefore,nFinalAfter,nUponBefore,nUponAfter,d01:diff(n1,n0),d12:diff(n2,n1),
     finalBeforeAvailable:zFinalBefore.some(v=>v!=null),uponBeforeAvailable:zUponBefore.some(v=>v!=null),
     finalAfterAvailable:zFinalAfter.some(v=>v!=null),uponAfterAvailable:zUponAfter.some(v=>v!=null),
@@ -271,10 +283,12 @@ function renderTables(m){
   if(state.view==="comparison"){tables.innerHTML="";return;}
   const parts=[];
   parts.push(tableSection("STAGE 0 - AS CAST DATA (ITD Internal Data only)",m,[["Actual",m.n0]]));
+  if(!m.isCis){
   parts.push(tableSection("STAGE 1 - After Stitching",m,[["Actual",m.n1]],{wir:wirText(state.data?.wir,"Stage 1")}));
   parts.push(tableSection("Comparison (Stage 0 - Stage 1)",m,[["Stage 0 - As Cast",m.n0],["Stage 1 - After Stitching",m.n1],["Diff.",m.d01]]));
   parts.push(tableSection("STAGE 2 - After Stressing",m,[["Actual",m.n2]],{wir:wirText(state.data?.wir,"Stage 2")}));
   parts.push(tableSection("Deflection due to stressing (Stage 2 - Stage 1)",m,[["Stage 1 - After Stitching",m.n1],["Stage 2 - After Stressing",m.n2],["Diff. (mm)",m.d12],["Remark*",m.d12,null,"remark",true]]));
+  }
   if(state.view==="final"){
     const rows=[["Design",m.zDesign,v=>cell(v,3)]];
     if(before||both)rows.push(["Final Alignment - Before Joint Check",m.zFinalBefore,v=>cell(v,3)]);
@@ -299,7 +313,8 @@ function renderTables(m){
     const delta=before?m.uponBeforeVsDesign:m.uponAfterVsDesign;
     rows.push(["Diff. from Design (mm)",delta],["Remark*",delta,null,"remark",true]);
     const badge=(before&&!m.uponBeforeAvailable)?`<span class="dataset-badge pending">No archived Before Joint Check data</span>`:`<span class="dataset-badge">${before?"Before":"After"} Joint Check</span>`;
-    parts.push(tableSection("STAGE 4 - UPON COMPLETION OF PARAPET WORKS",m,rows,{wir:wirText(state.data?.wir,"Stage 4"),unit:"m / mm"}));
+    const uponModel={...m,joints:m.joints.slice(0,m.uponJointCount),xs:m.uponXs.slice(0,m.uponJointCount)};
+    parts.push(tableSection("STAGE 4 - UPON COMPLETION OF PARAPET WORKS",uponModel,rows.map(r=>[r[0],r[1].slice(0,m.uponJointCount),...r.slice(2)]),{wir:wirText(state.data?.wir,"Stage 4"),unit:"m / mm"}));
   }
   tables.innerHTML=parts.join("");
 }
@@ -340,6 +355,8 @@ function renderChart(m){
 }
 function render(){
   const m=buildModel(state.data), [a,b]=state.span.replace("P","").split("-");
+  document.querySelectorAll('[data-stressing-note]').forEach(p=>p.classList.toggle('hidden',m.isCis));
+  $('#stage3Note').textContent=m.isCis?'CIS span: Before/After Stressing stages do not apply. Stage 3 presents Final Alignment elevations; Stage 4 presents Upon Completion of Parapet Works elevations.':'Stage 3: Erected span is supported on permanent bearings and UGP is already cast. The actual elevations are presented.';
   $("#pierFrom").textContent=`P-${a}`;$("#pierTo").textContent=`P-${b}`;
   renderTables(m);renderBridge(m.joints);
   const chartSection=$("#chartSection");chartSection.classList.toggle("hidden",state.view!=="comparison");
