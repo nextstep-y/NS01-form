@@ -290,28 +290,26 @@ function renderTables(m){
   parts.push(tableSection("Deflection due to stressing (Stage 2 - Stage 1)",m,[["Stage 1 - After Stitching",m.n1],["Stage 2 - After Stressing",m.n2],["Diff. (mm)",m.d12],["Remark*",m.d12,null,"remark",true]]));
   if(state.view==="final"){
     const rows=[["Design",m.zDesign,v=>cell(v,3)]];
-    if(before||both)rows.push(["Final Alignment - Before Joint Check",m.zFinalBefore,v=>cell(v,3)]);
-    if(!before||both)rows.push(["Final Alignment - After Joint Check",m.zFinalAfter,v=>cell(v,3)]);
+    if(before||both)rows.push([both?"Final Alignment - Original":"Final Alignment",m.zFinalBefore,v=>cell(v,3)]);
+    if(!before||both)rows.push([both?"Final Alignment - Current":"Final Alignment",m.zFinalAfter,v=>cell(v,3)]);
     if(both)rows.push(["Joint Check Correction (mm)",m.finalCorrection]);
     const delta=before?m.finalBeforeVsDesign:m.finalAfterVsDesign;
     rows.push(["Diff. from Design (mm)",delta],["Remark*",delta,null,"remark",true]);
-    const badge=(before&&!m.finalBeforeAvailable)?`<span class="dataset-badge pending">No archived Before Joint Check data</span>`:`<span class="dataset-badge">${before?"Before":"After"} Joint Check</span>`;
     parts.push(tableSection("STAGE 3 - FINAL ALIGNMENT",m,rows,{wir:wirText(state.data?.wir,"Stage 3"),unit:"m / mm"}));
   }else{
     const finalRows=[["Design",m.zDesign,v=>cell(v,3)]];
-    if(before||both)finalRows.push(["Final Alignment - Before Joint Check",m.zFinalBefore,v=>cell(v,3)]);
-    if(!before||both)finalRows.push(["Final Alignment - After Joint Check",m.zFinalAfter,v=>cell(v,3)]);
+    if(before||both)finalRows.push([both?"Final Alignment - Original":"Final Alignment",m.zFinalBefore,v=>cell(v,3)]);
+    if(!before||both)finalRows.push([both?"Final Alignment - Current":"Final Alignment",m.zFinalAfter,v=>cell(v,3)]);
     if(both)finalRows.push(["Joint Check Correction (mm)",m.finalCorrection]);
     const finalDelta=before?m.finalBeforeVsDesign:m.finalAfterVsDesign;
     finalRows.push(["Diff. from Design (mm)",finalDelta],["Remark*",finalDelta,null,"remark",true]);
     parts.push(tableSection("STAGE 3 - FINAL ALIGNMENT",m,finalRows,{wir:wirText(state.data?.wir,"Stage 3"),unit:"m / mm"}));
     const rows=[["Design",m.stage4Design,v=>cell(v,3)]];
-    if(before||both)rows.push(["Upon Completion - Before Joint Check",m.zUponBefore,v=>cell(v,3)]);
-    if(!before||both)rows.push([both?"Upon Completion - After Joint Check":"Upon Completion of Parapet Works",m.zUponAfter,v=>cell(v,3)]);
+    if(before||both)rows.push([both?"Upon Completion - Original":"Upon Completion of Parapet Works",m.zUponBefore,v=>cell(v,3)]);
+    if(!before||both)rows.push([both?"Upon Completion - Current":"Upon Completion of Parapet Works",m.zUponAfter,v=>cell(v,3)]);
     if(both)rows.push(["Joint Check Correction (mm)",m.uponCorrection]);
     const delta=before?m.uponBeforeVsDesign:m.uponAfterVsDesign;
     rows.push(["Diff. from Design (mm)",delta],["Remark*",delta,null,"remark",true]);
-    const badge=(before&&!m.uponBeforeAvailable)?`<span class="dataset-badge pending">No archived Before Joint Check data</span>`:`<span class="dataset-badge">${before?"Before":"After"} Joint Check</span>`;
     const uponModel={...m,joints:m.joints.slice(0,m.uponJointCount),xs:m.uponXs.slice(0,m.uponJointCount)};
     parts.push(tableSection("STAGE 4 - UPON COMPLETION OF PARAPET WORKS",uponModel,rows.map(r=>[r[0],r[1].slice(0,m.uponJointCount),...r.slice(2)]),{wir:wirText(state.data?.wir,"Stage 4"),unit:"m / mm"}));
   }
@@ -350,7 +348,7 @@ function renderChart(m){
     data.forEach((v,i)=>{if(v==null){flush();return;}segment.push(`${x(i)},${y(v)}`);html+=`<circle class="series-dot" fill="${COLORS[name]}" cx="${x(i)}" cy="${y(v)}" r="3.3"/>`;});flush();
   });
   svg.innerHTML=html;
-  $("#legend").innerHTML=series.map(([name,,dashed])=>`<span><i class="${dashed?'dashed':''}" style="border-color:${COLORS[name]}"></i>${name}</span>`).join("");
+  $("#legend").innerHTML=series.map(([name,,dashed])=>`<span><i class="${dashed?'dashed':''}" style="border-color:${COLORS[name]}"></i>${name.replace('Before Joint Check','Original').replace('After Joint Check','Current')}</span>`).join("");
 }
 function render(){
   const m=buildModel(state.data), [a,b]=state.span.replace("P","").split("-");
@@ -376,7 +374,7 @@ function printFileName(){
     upon:"Upon-Completion-of-Parapet-Works",
     comparison:"Comparison-and-Graph"
   }[state.view] || "Camber-Deflection";
-  const revision={before:"Before-Joint-Check",after:"After-Joint-Check",both:"Before-and-After-Joint-Check"}[state.revision];
+  const revision={before:"Original",after:"Current",both:"Original-and-Current"}[state.revision];
   return `${state.span}_${work}_${state.point}_${revision}`;
 }
 function printReport(){
