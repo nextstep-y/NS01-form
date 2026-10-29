@@ -223,7 +223,7 @@ function diff(a,b){ return a.map((v,i)=>v==null||b[i]==null?null:v-b[i]); }
 function buildModel(data){
   const isCis=normalizeSpan(state.span)==='P1120-1121';
   const design=elevationMap(data.design), ascast=elevationMap(data.ascast), uponDesign=elevationMap(data.uponDesign);
-  const stitching=readingMap(isCis?[]:data.before), stressing=readingMap(isCis?[]:data.after);
+  const stitching=readingMap(data.before), stressing=readingMap(data.after);
   const finalCurrent=alignmentMap(data.final), uponCurrent=elevationMap(data.upon);
   const finalBefore=archiveMap(data.jointCheckArchive,"Final Alignment","Before Joint Check");
   const finalAfter=mergedMap(finalCurrent,archiveMap(data.jointCheckArchive,"Final Alignment","After Joint Check"));
@@ -244,7 +244,7 @@ function buildModel(data){
   const uponRelativeXs=special?normalizationDistances(uponDesign,new Map(),joints,state.point,uponXs):relativeXs;
   const uponJointCount=special?Math.max(0,...[...uponDesign.values()].map(p=>p.joint||0)):joints.length;
   const zUponBefore=arrayFor(uponBefore,joints,state.point,"z"), zUponAfter=arrayFor(uponAfter,joints,state.point,"z");
-  const n0=normalized(zAs,relativeXs), n1=normalized(zStitching,relativeXs,true), n2=normalized(zStressing,relativeXs,true);
+  const n0=normalized(zAs,relativeXs), n1=normalized(zStitching,relativeXs,!isCis), n2=normalized(zStressing,relativeXs,!isCis);
   const nDesign=normalized(zDesign,relativeXs), nFinalBefore=normalized(zFinalBefore,relativeXs), nFinalAfter=normalized(zFinalAfter,relativeXs);
   const nUponBefore=normalized(zUponBefore,uponRelativeXs), nUponAfter=normalized(zUponAfter,uponRelativeXs);
   return {isCis,joints,xs,uponXs,uponJointCount,zDesign,zAs,zStitching,zStressing,stage4Design,zFinalBefore,zFinalAfter,zUponBefore,zUponAfter,
@@ -284,12 +284,10 @@ function renderTables(m){
   if(state.view==="comparison"){tables.innerHTML="";return;}
   const parts=[];
   parts.push(tableSection("STAGE 0 - AS CAST DATA (ITD Internal Data only)",m,[["Actual",m.n0]]));
-  if(!m.isCis){
   parts.push(tableSection("STAGE 1 - After Stitching",m,[["Actual",m.n1]],{wir:wirText(state.data?.wir,"Stage 1")}));
   parts.push(tableSection("Comparison (Stage 0 - Stage 1)",m,[["Stage 0 - As Cast",m.n0],["Stage 1 - After Stitching",m.n1],["Diff.",m.d01]]));
   parts.push(tableSection("STAGE 2 - After Stressing",m,[["Actual",m.n2]],{wir:wirText(state.data?.wir,"Stage 2")}));
   parts.push(tableSection("Deflection due to stressing (Stage 2 - Stage 1)",m,[["Stage 1 - After Stitching",m.n1],["Stage 2 - After Stressing",m.n2],["Diff. (mm)",m.d12],["Remark*",m.d12,null,"remark",true]]));
-  }
   if(state.view==="final"){
     const rows=[["Design",m.zDesign,v=>cell(v,3)]];
     if(before||both)rows.push(["Final Alignment - Before Joint Check",m.zFinalBefore,v=>cell(v,3)]);
@@ -357,7 +355,7 @@ function renderChart(m){
 function render(){
   const m=buildModel(state.data), [a,b]=state.span.replace("P","").split("-");
   document.querySelectorAll('[data-stressing-note]').forEach(p=>p.classList.toggle('hidden',m.isCis));
-  $('#stage3Note').textContent=m.isCis?'CIS span: Before/After Stressing stages do not apply. Stage 3 presents Final Alignment elevations; Stage 4 presents Upon Completion of Parapet Works elevations.':'Stage 3: Erected span is supported on permanent bearings and UGP is already cast. The actual elevations are presented.';
+  $('#stage3Note').textContent=m.isCis?'CIS span: Before/After Stressing values are normalized from elevations, not staff readings. Stage 3 presents Final Alignment elevations; Stage 4 presents Upon Completion of Parapet Works elevations.':'Stage 3: Erected span is supported on permanent bearings and UGP is already cast. The actual elevations are presented.';
   $("#pierFrom").textContent=`P-${a}`;$("#pierTo").textContent=`P-${b}`;
   renderTables(m);renderBridge(m.joints);
   const chartSection=$("#chartSection");chartSection.classList.toggle("hidden",state.view!=="comparison");
