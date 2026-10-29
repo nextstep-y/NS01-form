@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="description" content="Camber and Deflection Monitoring Report">
   <title>Camber and Deflection Monitoring Report</title>
-  <link rel="stylesheet" href="./styles.css?v=20261028-5">
+  <link rel="stylesheet" href="./styles.css?v=20261029-7">
 </head>
 <body>
   <div class="toolbar no-print">
@@ -52,11 +52,11 @@
     </nav>
 
     <section class="revision-bar no-print" aria-label="Joint check revision">
-      <b>Dataset:</b>
-      <button type="button" data-revision="before">Original data</button>
-      <button type="button" class="active" data-revision="after">Current data</button>
+      <b>Joint Check Data:</b>
+      <button type="button" data-revision="before">Before Joint Check</button>
+      <button type="button" class="active" data-revision="after">After Joint Check</button>
       <button type="button" data-revision="both">Show Both</button>
-      <span id="revisionNote">Current data is the primary verified dataset.</span>
+      <span id="revisionNote">After Joint Check is the primary verified dataset.</span>
     </section>
 
     <div id="status" class="status loading">Loading live data from Google Sheet...</div>
@@ -98,7 +98,7 @@
   </main>
 
   <div id="errorPanel" class="error-panel hidden no-print"></div>
-  <script src="./app.js?v=20261029-6"></script>
+  <script src="./app.js?v=20261029-7"></script>
 </body>
 </html>
 

@@ -258,8 +258,13 @@ function buildModel(data){
     finalCorrection:diff(zFinalAfter,zFinalBefore).map(v=>v==null?null:v*1000),
     uponCorrection:diff(zUponAfter,zUponBefore).map(v=>v==null?null:v*1000)};
 }
+function reportLabel(label){
+  if(!/Before Joint Check|After Joint Check/.test(label))return label;
+  const printed=state.revision==='both'?label.replace('Before Joint Check','Original').replace('After Joint Check','Current'):label.replace(/\s*[-·—]?\s*(Before|After) Joint Check/g,'');
+  return `<span class="screen-only-label">${label}</span><span class="print-only-label">${printed}</span>`;
+}
 function rowHtml(label,values,formatter=mm,kind="data",remarks=false){
-  return `<tr class="${kind}"><th>${label}</th>${values.map(v=>{
+  return `<tr class="${kind}"><th>${reportLabel(label)}</th>${values.map(v=>{
     const cls=remarks?valClass(v):(v==null?"missing":"");
     return `<td class="${cls}">${remarks?remark(v):formatter(v)}</td>`;
   }).join("")}</tr>`;
@@ -290,23 +295,23 @@ function renderTables(m){
   parts.push(tableSection("Deflection due to stressing (Stage 2 - Stage 1)",m,[["Stage 1 - After Stitching",m.n1],["Stage 2 - After Stressing",m.n2],["Diff. (mm)",m.d12],["Remark*",m.d12,null,"remark",true]]));
   if(state.view==="final"){
     const rows=[["Design",m.zDesign,v=>cell(v,3)]];
-    if(before||both)rows.push([both?"Final Alignment - Original":"Final Alignment",m.zFinalBefore,v=>cell(v,3)]);
-    if(!before||both)rows.push([both?"Final Alignment - Current":"Final Alignment",m.zFinalAfter,v=>cell(v,3)]);
+    if(before||both)rows.push(["Final Alignment - Before Joint Check",m.zFinalBefore,v=>cell(v,3)]);
+    if(!before||both)rows.push(["Final Alignment - After Joint Check",m.zFinalAfter,v=>cell(v,3)]);
     if(both)rows.push(["Joint Check Correction (mm)",m.finalCorrection]);
     const delta=before?m.finalBeforeVsDesign:m.finalAfterVsDesign;
     rows.push(["Diff. from Design (mm)",delta],["Remark*",delta,null,"remark",true]);
     parts.push(tableSection("STAGE 3 - FINAL ALIGNMENT",m,rows,{wir:wirText(state.data?.wir,"Stage 3"),unit:"m / mm"}));
   }else{
     const finalRows=[["Design",m.zDesign,v=>cell(v,3)]];
-    if(before||both)finalRows.push([both?"Final Alignment - Original":"Final Alignment",m.zFinalBefore,v=>cell(v,3)]);
-    if(!before||both)finalRows.push([both?"Final Alignment - Current":"Final Alignment",m.zFinalAfter,v=>cell(v,3)]);
+    if(before||both)finalRows.push(["Final Alignment - Before Joint Check",m.zFinalBefore,v=>cell(v,3)]);
+    if(!before||both)finalRows.push(["Final Alignment - After Joint Check",m.zFinalAfter,v=>cell(v,3)]);
     if(both)finalRows.push(["Joint Check Correction (mm)",m.finalCorrection]);
     const finalDelta=before?m.finalBeforeVsDesign:m.finalAfterVsDesign;
     finalRows.push(["Diff. from Design (mm)",finalDelta],["Remark*",finalDelta,null,"remark",true]);
     parts.push(tableSection("STAGE 3 - FINAL ALIGNMENT",m,finalRows,{wir:wirText(state.data?.wir,"Stage 3"),unit:"m / mm"}));
     const rows=[["Design",m.stage4Design,v=>cell(v,3)]];
-    if(before||both)rows.push([both?"Upon Completion - Original":"Upon Completion of Parapet Works",m.zUponBefore,v=>cell(v,3)]);
-    if(!before||both)rows.push([both?"Upon Completion - Current":"Upon Completion of Parapet Works",m.zUponAfter,v=>cell(v,3)]);
+    if(before||both)rows.push(["Upon Completion - Before Joint Check",m.zUponBefore,v=>cell(v,3)]);
+    if(!before||both)rows.push(["Upon Completion - After Joint Check",m.zUponAfter,v=>cell(v,3)]);
     if(both)rows.push(["Joint Check Correction (mm)",m.uponCorrection]);
     const delta=before?m.uponBeforeVsDesign:m.uponAfterVsDesign;
     rows.push(["Diff. from Design (mm)",delta],["Remark*",delta,null,"remark",true]);
@@ -348,7 +353,7 @@ function renderChart(m){
     data.forEach((v,i)=>{if(v==null){flush();return;}segment.push(`${x(i)},${y(v)}`);html+=`<circle class="series-dot" fill="${COLORS[name]}" cx="${x(i)}" cy="${y(v)}" r="3.3"/>`;});flush();
   });
   svg.innerHTML=html;
-  $("#legend").innerHTML=series.map(([name,,dashed])=>`<span><i class="${dashed?'dashed':''}" style="border-color:${COLORS[name]}"></i>${name.replace('Before Joint Check','Original').replace('After Joint Check','Current')}</span>`).join("");
+  $("#legend").innerHTML=series.map(([name,,dashed])=>`<span><i class="${dashed?'dashed':''}" style="border-color:${COLORS[name]}"></i>${reportLabel(name)}</span>`).join("");
 }
 function render(){
   const m=buildModel(state.data), [a,b]=state.span.replace("P","").split("-");
