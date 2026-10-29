@@ -9,7 +9,7 @@ const COLORS = {
   "Upon Completion - Before Joint Check":"#efaa55",
   "Upon Completion - After Joint Check":"#9a4c9c"
 };
-const state = { point:"BC", span:"", spans:[], data:null, loadedAt:null, view:"final", revision:"after" };
+const state = { point:"BC", span:"", spans:[], sourceLabels:{}, data:null, loadedAt:null, view:"final", revision:"after" };
 const $ = (s) => document.querySelector(s);
 const tables = $("#tables"), statusBox = $("#status"), errorPanel = $("#errorPanel");
 let jsonpSequence = 0;
@@ -35,8 +35,19 @@ function gviz(sheet, query){
 }
 function rows(table){ return (table?.rows || []).map(r=>(r.c||[]).map(c=>c ? (c.v ?? null) : null)); }
 function normalizeSpan(v){
-  const m = String(v||"").toUpperCase().match(/P-?(\d+[A-Z]*)\s*-\s*P?-?(\d+[A-Z]*)/);
-  return m ? `P${m[1]}-${m[2]}` : "";
+  const m = String(v||"").toUpperCase().replace(/[–—]/g,'-').match(/(?:^|\b)P?-?\s*(\d+[A-Z]*)\s*(?:-|TO)\s*P?-?\s*(\d+[A-Z]*)/);
+  if(!m)return '';
+  let a=m[1].replace(/ML$/,''),b=m[2].replace(/ML$/,'');
+  const left=a.match(/(NB|SB)$/)?.[1],right=b.match(/(NB|SB)$/)?.[1];
+  if(left&&right&&left!==right)return '';
+  if(left&&!right)b+=left;if(right&&!left)a+=right;
+  return `P${a}-${b}`;
+}
+function spanCondition(sheet,column,span){
+  const labels=state.sourceLabels[sheet]?.get(span);
+  if(labels?.size)return [...labels].map(label=>`${column}='${q(label)}'`).join(' or ');
+  const [a,b]=span.replace(/^P/,'').split('-'),base=[`P${a}-${b}`,`P-${a}-${b}`,`P${a}-P${b}`,`P-${a}-P-${b}`];
+  return [...new Set(base.flatMap(s=>[s,'SPAN '+s,'SPAN LAYOUT '+s]))].map(s=>`${column}='${q(s)}'`).join(' or ');
 }
 function q(v){ return String(v).replace(/'/g,"\\'"); }
 function wirSpanKey(value,bridgeLine=""){
@@ -80,12 +91,14 @@ async function loadSpans(){
   const set = new Set();
   const sources=[
     ["Span Layout Design","F"],["As-Cast","F"],["Before Stressing","A"],
-    ["After Stressing","A"],["Final Alignment","A"],["Upon Completion of Parapet Works","F"]
+    ["After Stressing","A"],["Final Alignment","A"],["Upon Completion of Parapet Works","F"],
+    ["UPON DESIGN","F"],["Joint Check Revision Archive","C"]
   ];
   const pages=await Promise.all(sources.map(([sheet,col])=>
     gviz(sheet,`select ${col},count(${col}) where ${col} is not null group by ${col}`)
   ));
-  pages.flatMap(rows).forEach(r=>{const span=normalizeSpan(r[0]);if(span)set.add(span);});
+  state.sourceLabels={};
+  pages.forEach((page,i)=>{const labels=new Map();state.sourceLabels[sources[i][0]]=labels;rows(page).forEach(r=>{const span=normalizeSpan(r[0]);if(!span)return;set.add(span);if(!labels.has(span))labels.set(span,new Set());labels.get(span).add(r[0]);});});
   state.spans = [...set].sort((a,b)=>{
     const pa=parseInt(a.match(/\d+/)?.[0]||0), pb=parseInt(b.match(/\d+/)?.[0]||0);
     return pa-pb || a.localeCompare(b);
@@ -95,19 +108,15 @@ async function loadSpans(){
   select.value=state.span;
 }
 async function loadSpanData(span){
-  const display = `SPAN ${span}`, s = q(span), ds = q(display);
-  const [start,end]=span.replace(/^P/i,"").split("-");
-  const labels=[`P${start}-${end}`,`P-${start}-${end}`,`P${start}-P${end}`,`P-${start}-P-${end}`];
-  const spanFilter=["SPAN ","SPAN LAYOUT "].flatMap(prefix=>labels.map(label=>`F='${q(prefix+label)}'`)).join(" or ");
   const tasks = [
-    ["design","Span Layout Design",`select A,B,C,D,E,F where ${spanFilter}`],
-    ["ascast","As-Cast",`select A,B,C,D,E,F where ${spanFilter}`],
-    ["before","Before Stressing",`select A,B,C,D,E where A='${s}'`],
-    ["after","After Stressing",`select A,B,C,D,E where A='${s}'`],
-    ["final","Final Alignment",`select A,B,C,D,E where A='${s}'`],
-    ["upon","Upon Completion of Parapet Works",`select A,B,C,D,E,F,G where ${spanFilter}`],
-    ["uponDesign","UPON DESIGN",`select A,B,C,D,E,F where ${spanFilter}`],
-    ["jointCheckArchive","Joint Check Revision Archive",`select A,B,C,D,E,F,G,H,I,J,K where C='${s}'`],
+    ["design","Span Layout Design",`select A,B,C,D,E,F where ${spanCondition('Span Layout Design','F',span)}`],
+    ["ascast","As-Cast",`select A,B,C,D,E,F where ${spanCondition('As-Cast','F',span)}`],
+    ["before","Before Stressing",`select A,B,C,D,E where ${spanCondition('Before Stressing','A',span)}`],
+    ["after","After Stressing",`select A,B,C,D,E where ${spanCondition('After Stressing','A',span)}`],
+    ["final","Final Alignment",`select A,B,C,D,E where ${spanCondition('Final Alignment','A',span)}`],
+    ["upon","Upon Completion of Parapet Works",`select A,B,C,D,E,F,G where ${spanCondition('Upon Completion of Parapet Works','F',span)}`],
+    ["uponDesign","UPON DESIGN",`select A,B,C,D,E,F where ${spanCondition('UPON DESIGN','F',span)}`],
+    ["jointCheckArchive","Joint Check Revision Archive",`select A,B,C,D,E,F,G,H,I,J,K where ${spanCondition('Joint Check Revision Archive','C',span)}`],
     ["wir","WIR",`select A,B,C,D,E,F,G,H,I where A is not null`]
   ];
   const result={};
@@ -123,7 +132,11 @@ async function loadSpanData(span){
 }
 function elevationMap(list){
   const m=new Map();
-  list.forEach(r=>{ const p=pointParts(r[1]); if(p) m.set(`${p.point}${p.joint}`,{joint:p.joint,n:num(r[2]),e:num(r[3]),z:num(r[4])}); });
+  list.forEach(r=>{ const p=pointParts(r[1]); if(!p)return;const key=`${p.point}${p.joint}`,v={joint:p.joint,n:num(r[2]),e:num(r[3]),z:num(r[4])},old=m.get(key);
+    // Compatible duplicate rows may omit coordinates; do not erase known values.
+    if(old&&old.z===v.z)for(const k of ['n','e'])if(v[k]==null||v[k]===0)v[k]=old[k];
+    if(v.z==null&&old)return;m.set(key,v);
+  });
   return m;
 }
 function readingMap(list){
@@ -187,6 +200,17 @@ function normalized(values,xs,invert=false){
   });
   return out;
 }
+// Relative chord calculations do not require an absolute project chainage.
+// Use only surveyed design coordinates; never infer equal joint spacing.
+function normalizationDistances(design,uponDesign,joints,point,xs){
+  if(xs.filter(v=>v!=null).length>=2)return xs;
+  const coords=joints.map(j=>{const p=design.get(`${point}${j}`),q=uponDesign.get(`${point}${j}`);return {n:p?.n??q?.n,e:p?.e??q?.e};});
+  const valid=coords.filter(p=>p.n!=null&&p.e!=null);
+  if(valid.length<2)return xs;
+  const a=valid[0],b=valid[valid.length-1],dn=b.n-a.n,de=b.e-a.e,L=Math.hypot(dn,de);
+  if(!L)return xs;
+  return coords.map(p=>p.n==null||p.e==null?null:((p.n-a.n)*dn+(p.e-a.e)*de)/L);
+}
 function diff(a,b){ return a.map((v,i)=>v==null||b[i]==null?null:v-b[i]); }
 function buildModel(data){
   const design=elevationMap(data.design), ascast=elevationMap(data.ascast), uponDesign=elevationMap(data.uponDesign);
@@ -201,14 +225,15 @@ function buildModel(data){
   const designMax=Math.max(0,...[...design.values()].map(x=>x.joint||0));
   const max=designMax || Math.max(0,...all.map(x=>x.joint||0)), joints=Array.from({length:max},(_,i)=>i+1);
   const xs=chainage(design,uponDesign,joints,state.point,state.span,data.chainage||[]);
+  const relativeXs=normalizationDistances(design,uponDesign,joints,state.point,xs);
   const zDesign=arrayFor(design,joints,state.point,"z");
   const zAs=arrayFor(ascast,joints,state.point,"z"), zStitching=arrayFor(stitching,joints,state.point), zStressing=arrayFor(stressing,joints,state.point);
   const zFinalBefore=arrayFor(finalBefore,joints,state.point,"z"), zFinalAfter=arrayFor(finalAfter,joints,state.point,"z");
   const special=data.uponDesign.length>0, stage4Design=arrayFor(special?uponDesign:design,joints,state.point,"z");
   const zUponBefore=arrayFor(uponBefore,joints,state.point,"z"), zUponAfter=arrayFor(uponAfter,joints,state.point,"z");
-  const n0=normalized(zAs,xs), n1=normalized(zStitching,xs,true), n2=normalized(zStressing,xs,true);
-  const nDesign=normalized(zDesign,xs), nFinalBefore=normalized(zFinalBefore,xs), nFinalAfter=normalized(zFinalAfter,xs);
-  const nUponBefore=normalized(zUponBefore,xs), nUponAfter=normalized(zUponAfter,xs);
+  const n0=normalized(zAs,relativeXs), n1=normalized(zStitching,relativeXs,true), n2=normalized(zStressing,relativeXs,true);
+  const nDesign=normalized(zDesign,relativeXs), nFinalBefore=normalized(zFinalBefore,relativeXs), nFinalAfter=normalized(zFinalAfter,relativeXs);
+  const nUponBefore=normalized(zUponBefore,relativeXs), nUponAfter=normalized(zUponAfter,relativeXs);
   return {joints,xs,zDesign,zAs,zStitching,zStressing,stage4Design,zFinalBefore,zFinalAfter,zUponBefore,zUponAfter,
     n0,n1,n2,nDesign,nFinalBefore,nFinalAfter,nUponBefore,nUponAfter,d01:diff(n1,n0),d12:diff(n2,n1),
     finalBeforeAvailable:zFinalBefore.some(v=>v!=null),uponBeforeAvailable:zUponBefore.some(v=>v!=null),
@@ -325,6 +350,9 @@ function render(){
   const missing=[];if(!m.finalBeforeAvailable)missing.push("Final Before");if(!m.uponBeforeAvailable)missing.push("Upon Before");
   statusBox.className=`status ${missing.length?"warning":"ok"}`;
   statusBox.textContent=`Live data · ${state.point} · ${available}/4 Joint Check datasets available · ${missing.length?"pending: "+missing.join(", "):"all revisions available"} · updated ${state.loadedAt.toLocaleString()}`;
+  const issues=Object.entries(state.data).filter(([k,v])=>k.endsWith('Error')&&v).map(([k,v])=>`${k.slice(0,-5)}: ${v}`);
+  if(m.xs.filter(v=>v!=null).length<2)issues.push(m.zDesign.some(v=>v!=null)?'Project chainage reference unavailable. Relative values use actual design coordinates; absolute chainage is left blank.':'Design coordinates unavailable: normalized stage values cannot be calculated. Survey records have not been deleted.');
+  errorPanel.textContent=issues.join(' · ');errorPanel.classList.toggle('hidden',!issues.length);
 }
 function printFileName(){
   const work={
@@ -341,10 +369,13 @@ function printReport(){
   window.addEventListener("afterprint",()=>{document.title=originalTitle;},{once:true});
   window.print();
 }
+let refreshSequence=0;
 async function refresh(){
+  const request=++refreshSequence,span=state.span;
   errorPanel.classList.add("hidden");statusBox.className="status loading";statusBox.textContent="Loading live data from Google Sheet...";
-  try{state.data=await loadSpanData(state.span);state.loadedAt=new Date();render();}
-  catch(err){statusBox.className="status warning";statusBox.textContent="Data could not be refreshed.";errorPanel.textContent=err.message;errorPanel.classList.remove("hidden");}
+  tables.innerHTML='';
+  try{const data=await loadSpanData(span);if(request!==refreshSequence||span!==state.span)return;state.data=data;state.loadedAt=new Date();render();}
+  catch(err){if(request!==refreshSequence)return;statusBox.className="status warning";statusBox.textContent="Data could not be refreshed.";errorPanel.textContent=err.message;errorPanel.classList.remove("hidden");}
 }
 async function init(){
   const reportDate=new Date();

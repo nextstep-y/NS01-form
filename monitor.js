@@ -1,8 +1,7 @@
 // All calculations in metres until the explicit conversion to millimetres.
 const monitorState={rows:[],loadedAt:null,current:false};
 function canonicalSpan(value){
- const m=String(value||'').toUpperCase().match(/P-?(\d+[A-Z]*)\s*(?:-|TO)\s*P?-?(\d+[A-Z]*)/);
- return m?`P${m[1]}-${m[2]}`:'';
+ return normalizeSpan(value);
 }
 function excess(value,lo,hi){return value==null?null:value>hi+1e-7?value-hi:value<lo-1e-7?value-lo:0;}
 function signed(value){return value==null?'—':Math.abs(value)<.0005?'0.000':`${value>0?'+':''}${value.toFixed(3)}`;}

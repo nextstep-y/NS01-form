@@ -1,0 +1,9 @@
+const fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict');
+const c={console,document:{querySelector:()=>({addEventListener(){}}),body:{hasAttribute:()=>true}},fetch:async()=>({ok:true,json:async()=>[]})};vm.createContext(c);vm.runInContext(fs.readFileSync(__dirname+'/app.js','utf8'),c);const run=s=>vm.runInContext(s,c);
+for(const [raw,want]of [['P-963  to P-964','P963-964'],['SPAN 1108NB-1109NB','P1108NB-1109NB'],['P-1108ML to P-1109ML','P1108-1109'],['Span P981 to P982','P981-982'],['SPAN P988NB - 989NB','P988NB-989NB'],['P991-991A','P991-991A']]){c.raw=raw;assert.equal(run('normalizeSpan(raw)'),want);}
+assert.equal(run('JSON.stringify(normalizationDistances(elevationMap([[1,"1BCP-988",0,10,90],[1,"2BCP-988",0,12,90],[1,"3BCP-988",0,20,90]]),new Map(),[1,2,3],"BC",[null,null,null]))'),'[0,2,10]');
+assert.equal(run('JSON.stringify(normalizationDistances(new Map(),new Map(),[1,2,3],"BC",[null,null,null]))'),'[null,null,null]');
+c.fixture={'Span Layout Design':[['P-963  to P-964'],['P-1108ML to P-1109ML']],'As-Cast':[['SPAN 1108NB-1109NB']],'Joint Check Revision Archive':[['P1108ML-1109ML'],['P1114SB-1115SB']]};
+run('gviz=async(sheet)=>({rows:(fixture[sheet]||[]).map(r=>({c:r.map(v=>({v}))}))})');
+(async()=>{await run('loadSpans()');assert.equal(run('state.spans.includes("P1108-1109")'),true);assert.equal(run('state.spans.includes("P1114SB-1115SB")'),true);assert.equal(run('spanCondition("Span Layout Design","F","P963-964")'),"F='P-963  to P-964'");assert.equal(run('spanCondition("As-Cast","F","P1108NB-1109NB")'),"F='SPAN 1108NB-1109NB'");
+const p=run('elevationMap([[1,"1BCP-963",10,20,90],[1,"1BCP-963",null,0,90]]).get("BC1")');assert.equal(p.n,10);assert.equal(p.e,20);console.log('Span label index, ML/NB/SB identity and compatible duplicates passed');})();
