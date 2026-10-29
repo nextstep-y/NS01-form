@@ -232,7 +232,8 @@ function buildModel(data){
   const all=[...design.values(),...ascast.values(),...uponDesign.values(),...finalBefore.values(),...finalAfter.values(),...uponBefore.values(),...uponAfter.values()];
   [...stitching.keys(),...stressing.keys()].forEach(k=>all.push({joint:+k.match(/\d+/)[0]}));
   const designMax=Math.max(0,...[...design.values()].map(x=>x.joint||0));
-  const max=designMax || Math.max(0,...all.map(x=>x.joint||0)), joints=Array.from({length:max},(_,i)=>i+1);
+  const uponDesignMax=Math.max(0,...[...uponDesign.values()].map(x=>x.joint||0));
+  const max=designMax || uponDesignMax || Math.max(0,...all.map(x=>x.joint||0)), joints=Array.from({length:max},(_,i)=>i+1);
   const xs=chainage(design,uponDesign,joints,state.point,state.span,data.chainage||[]);
   const relativeXs=normalizationDistances(design,uponDesign,joints,state.point,xs);
   const zDesign=arrayFor(design,joints,state.point,"z");
