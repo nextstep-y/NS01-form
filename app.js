@@ -120,7 +120,7 @@ async function loadSpanData(span){
     ["wir","WIR",`select A,B,C,D,E,F,G,H,I where A is not null`]
   ];
   const result={};
-  const chainageResponse=await fetch("./project-chainage.json");
+  const chainageResponse=await fetch("./project-chainage.json?v=20261030-1",{cache:"no-store"});
   if(!chainageResponse.ok)throw new Error("Unable to load project chainage reference.");
   result.chainage=await chainageResponse.json();
   for(const [key,sheet,query] of tasks){
