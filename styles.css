@@ -28,6 +28,8 @@ select{min-width:165px;padding:0 28px 0 10px}.button{display:inline-flex;align-i
 .error-panel{position:fixed;left:20px;right:20px;bottom:20px;padding:15px;background:#7f251c;color:white;border-radius:6px;z-index:30;box-shadow:0 5px 20px #0003}.hidden{display:none}
 @media(max-width:900px){.toolbar{align-items:flex-start;flex-direction:column}.controls{width:100%}.report{width:100%;margin:0;padding:15px}.report-head{flex-direction:column}.project-lines{min-width:0}.project-lines>div{grid-template-columns:95px 1fr}.signatures{flex-direction:column;align-items:stretch}.signature-box{width:100%;flex-basis:auto}.key-plan,.mini-bridge{min-width:0}}
 .print-only-label{display:none}
+.sign-space--signed{position:relative;min-height:0}
+.surveyor-signature{position:absolute;inset:0;margin:auto;display:block;width:90%;height:100%;object-fit:contain}
 @page{size:A4 landscape;margin:7mm}
 @media print{
   .screen-only-label{display:none!important}.print-only-label{display:inline!important}
