@@ -32,7 +32,7 @@ function compileMonitor(data){
  const design=grouped(data.design,5,coordPoint),uponDesign=grouped(data.uponDesign,5,coordPoint),upon=grouped(data.upon,5,coordPoint),final=grouped(data.final,0,finalPoint);
  applyAfterArchive(upon,data.archive,'Upon Completion of Parapet Works');applyAfterArchive(final,data.archive,'Final Alignment');
  const spans=[...new Set([...design.keys(),...upon.keys(),...final.keys()])].sort((a,b)=>parseInt(a.slice(1))-parseInt(b.slice(1))||a.localeCompare(b));const out=[];
- for(const span of spans){const hasUpon=(upon.get(span)?.size||0)>0;const actual=(hasUpon?upon:final).get(span)||new Map();const source=hasUpon?'Upon · After Joint Check':actual.size?'Final Alignment · After Joint Check':'No verified actual';const d=hasUpon&&uponDesign.has(span)?uponDesign.get(span):design.get(span)||new Map();for(const line of ['BW','BC','BE'])out.push(monitorLine(span,line,d,actual,source));}return out;
+ for(const span of spans){const hasUpon=(upon.get(span)?.size||0)>0;const actual=(hasUpon?upon:final).get(span)||new Map();const source=hasUpon?'Upon · After Joint Check':actual.size?'Final Alignment · After Joint Check':'No verified actual';const useUponDesign=hasUpon||span==='P1120-1121';const d=useUponDesign&&uponDesign.has(span)?uponDesign.get(span):design.get(span)||new Map();for(const line of ['BW','BC','BE'])out.push(monitorLine(span,line,d,actual,source));}return out;
 }
 function isOutside(r){return [r.cp,r.cn,r.ep,r.en].some(v=>v&&Math.abs(v.value)>.0000001);}
 function filteredMonitorRows(){const query=$('#monitorSearch').value.trim().toUpperCase(),line=$('#monitorLine').value,only=$('#onlyExceptions').checked;return monitorState.rows.filter(r=>(!query||r.span.includes(query))&&(!line||r.line===line)&&(!only||isOutside(r)));}

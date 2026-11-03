@@ -81,11 +81,11 @@ function cell(v,d=3){ return v==null || !Number.isFinite(Number(v)) ? "–" : Nu
 function mm(v){ return v==null || !Number.isFinite(Number(v)) ? "–" : Number(v).toFixed(3); }
 function valClass(v){
   if(v==null || !Number.isFinite(Number(v))) return "missing";
-  if(v > 38) return "over";
-  if(v < -10) return "bad";
+  if(v > 38 + 1e-7) return "over";
+  if(v < -10 - 1e-7) return "bad";
   return "good";
 }
-function remark(v){ return v==null ? "–" : v>38 ? "Over Camber" : v<-10 ? "Below -10 mm" : "Okay"; }
+function remark(v){ return v==null ? "–" : v>38+1e-7 ? "Over Camber" : v<-10-1e-7 ? "Sagging" : "Okay"; }
 
 async function loadSpans(){
   const set = new Set();
@@ -243,16 +243,21 @@ function buildModel(data){
   const uponXs=special?chainage(uponDesign,new Map(),joints,state.point,state.span,data.chainage||[]):xs;
   const uponRelativeXs=special?normalizationDistances(uponDesign,new Map(),joints,state.point,uponXs):relativeXs;
   const uponJointCount=special?Math.max(0,...[...uponDesign.values()].map(p=>p.joint||0)):joints.length;
+  const finalUsesUpon=isCis&&special;
+  const finalJointCount=finalUsesUpon?uponJointCount:joints.length;
+  const finalXs=finalUsesUpon?uponXs:xs;
+  const finalDistances=finalUsesUpon?uponRelativeXs:relativeXs;
+  const finalDesign=finalUsesUpon?arrayFor(uponDesign,joints,state.point,"z"):zDesign;
   const zUponBefore=arrayFor(uponBefore,joints,state.point,"z"), zUponAfter=arrayFor(uponAfter,joints,state.point,"z");
   const n0=normalized(zAs,relativeXs), n1=normalized(zStitching,relativeXs,!isCis), n2=normalized(zStressing,relativeXs,!isCis);
-  const nDesign=normalized(zDesign,relativeXs), nFinalBefore=normalized(zFinalBefore,relativeXs), nFinalAfter=normalized(zFinalAfter,relativeXs);
+  const nDesign=normalized(zDesign,relativeXs), nFinalBefore=normalized(zFinalBefore,finalDistances), nFinalAfter=normalized(zFinalAfter,finalDistances);
   const nUponBefore=normalized(zUponBefore,uponRelativeXs), nUponAfter=normalized(zUponAfter,uponRelativeXs);
-  return {isCis,joints,xs,uponXs,uponJointCount,zDesign,zAs,zStitching,zStressing,stage4Design,zFinalBefore,zFinalAfter,zUponBefore,zUponAfter,
+  return {isCis,joints,xs,uponXs,uponJointCount,finalUsesUpon,finalJointCount,finalXs,finalDesign,zDesign,zAs,zStitching,zStressing,stage4Design,zFinalBefore,zFinalAfter,zUponBefore,zUponAfter,
     n0,n1,n2,nDesign,nFinalBefore,nFinalAfter,nUponBefore,nUponAfter,d01:diff(n1,n0),d12:diff(n2,n1),
     finalBeforeAvailable:zFinalBefore.some(v=>v!=null),uponBeforeAvailable:zUponBefore.some(v=>v!=null),
     finalAfterAvailable:zFinalAfter.some(v=>v!=null),uponAfterAvailable:zUponAfter.some(v=>v!=null),
-    finalBeforeVsDesign:diff(zFinalBefore,zDesign).map(v=>v==null?null:v*1000),
-    finalAfterVsDesign:diff(zFinalAfter,zDesign).map(v=>v==null?null:v*1000),
+    finalBeforeVsDesign:diff(zFinalBefore,finalDesign).map(v=>v==null?null:v*1000),
+    finalAfterVsDesign:diff(zFinalAfter,finalDesign).map(v=>v==null?null:v*1000),
     uponBeforeVsDesign:diff(zUponBefore,stage4Design).map(v=>v==null?null:v*1000),
     uponAfterVsDesign:diff(zUponAfter,stage4Design).map(v=>v==null?null:v*1000),
     finalCorrection:diff(zFinalAfter,zFinalBefore).map(v=>v==null?null:v*1000),
@@ -288,27 +293,29 @@ function renderTables(m){
   const both=state.revision==="both", before=state.revision==="before";
   if(state.view==="comparison"){tables.innerHTML="";return;}
   const parts=[];
+  const finalModel={...m,joints:m.joints.slice(0,m.finalJointCount),xs:m.finalXs.slice(0,m.finalJointCount)};
+  const finalRowsFor=rows=>rows.map(r=>[r[0],r[1].slice(0,m.finalJointCount),...r.slice(2)]);
   parts.push(tableSection("STAGE 0 - AS CAST DATA (ITD Internal Data only)",m,[["Actual",m.n0]]));
   parts.push(tableSection("STAGE 1 - After Stitching",m,[["Actual",m.n1]],{wir:wirText(state.data?.wir,"Stage 1")}));
   parts.push(tableSection("Comparison (Stage 0 - Stage 1)",m,[["Stage 0 - As Cast",m.n0],["Stage 1 - After Stitching",m.n1],["Diff.",m.d01]]));
   parts.push(tableSection("STAGE 2 - After Stressing",m,[["Actual",m.n2]],{wir:wirText(state.data?.wir,"Stage 2")}));
   parts.push(tableSection("Deflection due to stressing (Stage 2 - Stage 1)",m,[["Stage 1 - After Stitching",m.n1],["Stage 2 - After Stressing",m.n2],["Diff. (mm)",m.d12],["Remark*",m.d12,null,"remark",true]]));
   if(state.view==="final"){
-    const rows=[["Design",m.zDesign,v=>cell(v,3)]];
+    const rows=[["Design",m.finalDesign,v=>cell(v,3)]];
     if(before||both)rows.push(["Final Alignment - Before Joint Check",m.zFinalBefore,v=>cell(v,3)]);
     if(!before||both)rows.push(["Final Alignment - After Joint Check",m.zFinalAfter,v=>cell(v,3)]);
     if(both)rows.push(["Joint Check Correction (mm)",m.finalCorrection]);
     const delta=before?m.finalBeforeVsDesign:m.finalAfterVsDesign;
     rows.push(["Diff. from Design (mm)",delta],["Remark*",delta,null,"remark",true]);
-    parts.push(tableSection("STAGE 3 - FINAL ALIGNMENT",m,rows,{wir:wirText(state.data?.wir,"Stage 3"),unit:"m / mm"}));
+    parts.push(tableSection("STAGE 3 - FINAL ALIGNMENT",finalModel,finalRowsFor(rows),{wir:wirText(state.data?.wir,"Stage 3"),unit:"m / mm"}));
   }else{
-    const finalRows=[["Design",m.zDesign,v=>cell(v,3)]];
+    const finalRows=[["Design",m.finalDesign,v=>cell(v,3)]];
     if(before||both)finalRows.push(["Final Alignment - Before Joint Check",m.zFinalBefore,v=>cell(v,3)]);
     if(!before||both)finalRows.push(["Final Alignment - After Joint Check",m.zFinalAfter,v=>cell(v,3)]);
     if(both)finalRows.push(["Joint Check Correction (mm)",m.finalCorrection]);
     const finalDelta=before?m.finalBeforeVsDesign:m.finalAfterVsDesign;
     finalRows.push(["Diff. from Design (mm)",finalDelta],["Remark*",finalDelta,null,"remark",true]);
-    parts.push(tableSection("STAGE 3 - FINAL ALIGNMENT",m,finalRows,{wir:wirText(state.data?.wir,"Stage 3"),unit:"m / mm"}));
+    parts.push(tableSection("STAGE 3 - FINAL ALIGNMENT",finalModel,finalRowsFor(finalRows),{wir:wirText(state.data?.wir,"Stage 3"),unit:"m / mm"}));
     const rows=[["Design",m.stage4Design,v=>cell(v,3)]];
     if(before||both)rows.push(["Upon Completion - Before Joint Check",m.zUponBefore,v=>cell(v,3)]);
     if(!before||both)rows.push(["Upon Completion - After Joint Check",m.zUponAfter,v=>cell(v,3)]);
@@ -341,16 +348,20 @@ function renderChart(m){
   if(state.revision!=="before")series.push(["Final Alignment - After Joint Check",m.nFinalAfter,false],["Upon Completion - After Joint Check",m.nUponAfter,false]);
   const vals=series.flatMap(s=>s[1]).filter(v=>v!=null&&Number.isFinite(v));
   let min=Math.min(-10,...vals),max=Math.max(38,...vals); const pad=Math.max(8,(max-min)*.12);min=Math.floor((min-pad)/10)*10;max=Math.ceil((max+pad)/10)*10;
-  const x=i=>p.l+(W-p.l-p.r)*(m.joints.length<=1?0:i/(m.joints.length-1)), y=v=>p.t+(H-p.t-p.b)*(max-v)/(max-min);
+  const chainageAxis=m.finalUsesUpon&&m.xs.every(v=>v!=null)&&m.finalXs.slice(0,m.finalJointCount).every(v=>v!=null);
+  const allXs=chainageAxis?[...m.xs,...m.finalXs,...m.uponXs].filter(v=>v!=null):[];
+  const xMin=Math.min(...allXs),xMax=Math.max(...allXs);
+  const x=(i,coords=m.xs)=>p.l+(W-p.l-p.r)*(chainageAxis?(coords[i]-xMin)/(xMax-xMin):(m.joints.length<=1?0:i/(m.joints.length-1))), y=v=>p.t+(H-p.t-p.b)*(max-v)/(max-min);
   let html="";
   const ticks=6;for(let i=0;i<=ticks;i++){const v=min+(max-min)*i/ticks,yy=y(v);html+=`<line class="gridline" x1="${p.l}" y1="${yy}" x2="${W-p.r}" y2="${yy}"/><text class="axis-text" x="${p.l-8}" y="${yy+4}" text-anchor="end">${v.toFixed(3)}</text>`;}
   html+=`<line class="axis" x1="${p.l}" y1="${p.t}" x2="${p.l}" y2="${H-p.b}"/><line class="axis" x1="${p.l}" y1="${H-p.b}" x2="${W-p.r}" y2="${H-p.b}"/>`;
-  m.joints.forEach((j,i)=>html+=`<text class="axis-text" x="${x(i)}" y="${H-p.b+20}" text-anchor="middle">${j}</text>`);
-  html+=`<text class="axis-text" x="${W/2}" y="${H-5}" text-anchor="middle">Joint No.</text><text class="axis-text" transform="translate(14 ${H/2}) rotate(-90)" text-anchor="middle">Normalized value (mm)</text>`;
+  m.joints.forEach((j,i)=>html+=`<text class="axis-text" x="${x(i)}" y="${H-p.b+20}" text-anchor="middle">${chainageAxis?chainageText(m.xs[i]):j}</text>`);
+  html+=`<text class="axis-text" x="${W/2}" y="${H-5}" text-anchor="middle">${chainageAxis?'Project Chainage (m)':'Joint No.'}</text><text class="axis-text" transform="translate(14 ${H/2}) rotate(-90)" text-anchor="middle">Normalized value (mm)</text>`;
   series.forEach(([name,data,dashed])=>{
+    const coords=name.startsWith('Final Alignment')?m.finalXs:name.startsWith('Upon Completion')?m.uponXs:m.xs;
     let segment=[];
     const flush=()=>{if(segment.length>1)html+=`<polyline class="series-line" stroke="${COLORS[name]}" ${dashed?'stroke-dasharray="9 6"':''} points="${segment.join(" ")}"/>`;segment=[];};
-    data.forEach((v,i)=>{if(v==null){flush();return;}segment.push(`${x(i)},${y(v)}`);html+=`<circle class="series-dot" fill="${COLORS[name]}" cx="${x(i)}" cy="${y(v)}" r="3.3"/>`;});flush();
+    data.forEach((v,i)=>{if(v==null||chainageAxis&&coords[i]==null){flush();return;}segment.push(`${x(i,coords)},${y(v)}`);html+=`<circle class="series-dot" fill="${COLORS[name]}" cx="${x(i,coords)}" cy="${y(v)}" r="3.3"/>`;});flush();
   });
   svg.innerHTML=html;
   $("#legend").innerHTML=series.map(([name,,dashed])=>`<span><i class="${dashed?'dashed':''}" style="border-color:${COLORS[name]}"></i>${reportLabel(name)}</span>`).join("");
@@ -358,7 +369,7 @@ function renderChart(m){
 function render(){
   const m=buildModel(state.data), [a,b]=state.span.replace("P","").split("-");
   document.querySelectorAll('[data-stressing-note]').forEach(p=>p.classList.toggle('hidden',m.isCis));
-  $('#stage3Note').textContent=m.isCis?'CIS span: Before/After Stressing values are normalized from elevations, not staff readings. Stage 3 presents Final Alignment elevations; Stage 4 presents Upon Completion of Parapet Works elevations.':'Stage 3: Erected span is supported on permanent bearings and UGP is already cast. The actual elevations are presented.';
+  $('#stage3Note').textContent=m.isCis?'CIS span: Before/After Stressing retain the original 11 sections. Final Alignment and Upon use 9 common target sections. Final BW/BE elevations are interpolated from paired As-built/Design cross-sections; BC uses direct observations. The comparison graph uses project chainage to align the different section layouts.':'Stage 3: Erected span is supported on permanent bearings and UGP is already cast. The actual elevations are presented.';
   $("#pierFrom").textContent=`P-${a}`;$("#pierTo").textContent=`P-${b}`;
   renderTables(m);renderBridge(m.joints);
   const chartSection=$("#chartSection");chartSection.classList.toggle("hidden",state.view!=="comparison");
