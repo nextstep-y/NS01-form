@@ -5,4 +5,9 @@ for(const [v,text,style] of [[-10,'Okay','good'],[-10.00000000002,'Okay','good']
  c.v=v;assert.equal(vm.runInContext('remark(v)',c),text);assert.equal(vm.runInContext('valClass(v)',c),style);
 }
 assert.equal(vm.runInContext('remark(null)',c),'–');
+assert.equal(vm.runInContext('mm(12.345)',c),'12');
+assert.equal(vm.runInContext('mm(-12.678)',c),'-13');
+assert.equal(vm.runInContext('mm(-0.1)',c),'0');
+assert.equal(vm.runInContext('cell(119.6,3)',c),'119.600');
+assert.equal(vm.runInContext('chainageText(70640.175)',c),'70+640.175');
 console.log('PASS: Sagging below -10 mm; inclusive -10/+38 mm limits and floating-point tolerance');

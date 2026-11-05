@@ -4,7 +4,7 @@ function canonicalSpan(value){
  return normalizeSpan(value);
 }
 function excess(value,lo,hi){return value==null?null:value>hi+1e-7?value-hi:value<lo-1e-7?value-lo:0;}
-function signed(value){return value==null?'—':Math.abs(value)<.0005?'0.000':`${value>0?'+':''}${value.toFixed(3)}`;}
+function signed(value){return value==null?'—':Math.abs(value)<.5?'0':`${value>0?'+':''}${value.toFixed(0)}`;}
 function safe(value){return String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function grouped(list,spanColumn,make){const map=new Map();for(const r of list){const span=canonicalSpan(r[spanColumn]);if(!span)continue;if(!map.has(span)){const g=new Map();g.conflicts=new Set();map.set(span,g);}let p=make(r);if(p&&p.z!=null){const g=map.get(span),key=`${p.point}${p.joint}`,previous=g.get(key);if(previous){const sameLevel=Math.abs(previous.z-p.z)<1e-9;const has=v=>v!=null&&v!==0;const compatible=sameLevel&&['n','e'].every(k=>!has(previous[k])||!has(p[k])||previous[k]===p[k]);if(compatible)p={...p,n:has(p.n)?p.n:previous.n,e:has(p.e)?p.e:previous.e};else if(['z','n','e'].some(k=>previous[k]!==p[k]))g.conflicts.add(key);}g.set(key,p);}}return map;}
 function coordPoint(r){const p=pointParts(r[1]);return p?{...p,n:num(r[2]),e:num(r[3]),z:num(r[4])}:null;}
