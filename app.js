@@ -82,10 +82,10 @@ function mm(v){ return v==null || !Number.isFinite(Number(v)) ? "–" : Math.abs
 function valClass(v){
   if(v==null || !Number.isFinite(Number(v))) return "missing";
   if(v > 38 + 1e-7) return "over";
-  if(v < -10 - 1e-7) return "bad";
+  if(v < -30 - 1e-7) return "bad";
   return "good";
 }
-function remark(v){ return v==null ? "–" : v>38+1e-7 ? "Over Camber" : v<-10-1e-7 ? "Sagging" : "Okay"; }
+function remark(v){ return v==null ? "–" : v>38+1e-7 ? "Over Camber" : v<-30-1e-7 ? "Sagging" : "Okay"; }
 
 async function loadSpans(){
   const set = new Set();
@@ -347,7 +347,7 @@ function renderChart(m){
   if(state.revision!=="after")series.push(["Final Alignment - Before Joint Check",m.nFinalBefore,true],["Upon Completion - Before Joint Check",m.nUponBefore,true]);
   if(state.revision!=="before")series.push(["Final Alignment - After Joint Check",m.nFinalAfter,false],["Upon Completion - After Joint Check",m.nUponAfter,false]);
   const vals=series.flatMap(s=>s[1]).filter(v=>v!=null&&Number.isFinite(v));
-  let min=Math.min(-10,...vals),max=Math.max(38,...vals); const pad=Math.max(8,(max-min)*.12);min=Math.floor((min-pad)/10)*10;max=Math.ceil((max+pad)/10)*10;
+  let min=Math.min(-30,...vals),max=Math.max(38,...vals); const pad=Math.max(8,(max-min)*.12);min=Math.floor((min-pad)/10)*10;max=Math.ceil((max+pad)/10)*10;
   const chainageAxis=m.finalUsesUpon&&m.xs.every(v=>v!=null)&&m.finalXs.slice(0,m.finalJointCount).every(v=>v!=null);
   const allXs=chainageAxis?[...m.xs,...m.finalXs,...m.uponXs].filter(v=>v!=null):[];
   const xMin=Math.min(...allXs),xMax=Math.max(...allXs);

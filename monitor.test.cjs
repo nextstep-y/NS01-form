@@ -3,7 +3,7 @@ const context={document:{querySelector:()=>({addEventListener(){}}),body:{hasAtt
 vm.runInContext(fs.readFileSync(__dirname+'/app.js','utf8'),context);
 vm.runInContext(fs.readFileSync(__dirname+'/monitor.js','utf8').replace(/refreshMonitor\(\);\s*$/,''),context);
 vm.runInContext(`
-if(excess(50,0,38)!==12||excess(-5,0,38)!==-5||excess(40,-30,30)!==10||excess(-40,-30,30)!==-10||excess(null,0,38)!==null)throw Error('Limits');
+if(excess(50,0,38)!==12||excess(-5,-30,38)!==0||excess(-30,-30,38)!==0||excess(-40,-30,38)!==-10||excess(40,-30,30)!==10||excess(-40,-30,30)!==-10||excess(null,0,38)!==null)throw Error('Limits');
 const design=new Map([1,2,3].map(j=>['BC'+j,{joint:j,point:'BC',n:j,e:1,z:100}]));
 const actual=new Map([1,2,3].map(j=>['BC'+j,{joint:j,point:'BC',z:100+(j===2?.05:0)}]));
 const result=monitorLine('P1-2','BC',design,actual,'test');
