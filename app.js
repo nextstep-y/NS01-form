@@ -1,13 +1,13 @@
 const SHEET_ID = "1V4wHyGdhULg2g4vWgg0HlspuscWNcq-lHuJIrdTF5_g";
 const COLORS = {
-  "Design":"#111820",
-  "Stage 0 - As Cast":"#4f6f91",
-  "Stage 1 - After Stitching":"#ec8b22",
-  "Stage 2 - After Stressing":"#34955b",
-  "Final Alignment - Before Joint Check":"#78a9dc",
-  "Final Alignment - After Joint Check":"#1f5da8",
-  "Upon Completion - Before Joint Check":"#efaa55",
-  "Upon Completion - After Joint Check":"#9a4c9c"
+  "Design":"#111111",
+  "Stage 0 - As Cast":"#737373",
+  "Stage 1 - After Stitching":"#D97700",
+  "Stage 2 - After Stressing":"#168331",
+  "Final Alignment - Before Joint Check":"#7C3AED",
+  "Final Alignment - After Joint Check":"#0057D9",
+  "Upon Completion - Before Joint Check":"#008A99",
+  "Upon Completion - After Joint Check":"#D81B60"
 };
 const state = { point:"BC", span:"", spans:[], sourceLabels:{}, data:null, loadedAt:null, view:"final", revision:"after" };
 const $ = (s) => document.querySelector(s);
